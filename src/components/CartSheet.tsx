@@ -1,7 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { Separator } from "@/components/ui/separator";
 
 interface CartSheetProps {
@@ -11,8 +13,19 @@ interface CartSheetProps {
 
 export default function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const { items, updateQuantity, removeItem, clearCart, total } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const deliveryFee = items.length > 0 ? 2.99 : 0;
   const grandTotal = total + deliveryFee;
+
+  const handleCheckout = () => {
+    onOpenChange(false);
+    if (!user) {
+      navigate("/auth");
+    } else {
+      navigate("/checkout");
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -103,8 +116,12 @@ export default function CartSheet({ open, onOpenChange }: CartSheetProps) {
                 <span>Total</span>
                 <span className="text-primary">${grandTotal.toFixed(2)}</span>
               </div>
-              <Button className="w-full h-12 text-base font-semibold" size="lg">
-                Checkout · ${grandTotal.toFixed(2)}
+              <Button
+                className="w-full h-12 text-base font-semibold"
+                size="lg"
+                onClick={handleCheckout}
+              >
+                {user ? `Checkout · $${grandTotal.toFixed(2)}` : "Sign in to Checkout"}
               </Button>
               <Button
                 variant="ghost"

@@ -1,14 +1,30 @@
 import { useState } from "react";
-import { MapPin, Search, ShoppingBag, User, Menu, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { MapPin, Search, ShoppingBag, User, Menu, X, LogOut, Package, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import CartSheet from "./CartSheet";
 
 export default function Navbar() {
   const { itemCount } = useCart();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <>
@@ -40,9 +56,39 @@ export default function Navbar() {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="hidden md:flex">
-                <User className="w-5 h-5" />
-              </Button>
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="hidden md:flex">
+                      <User className="w-5 h-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => navigate("/orders")}>
+                      <Package className="w-4 h-4 mr-2" />
+                      My Orders
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/favorites")}>
+                      <Heart className="w-4 h-4 mr-2" />
+                      Favorites
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hidden md:flex"
+                  onClick={() => navigate("/auth")}
+                >
+                  Sign In
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -67,7 +113,7 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Mobile Search */}
+          {/* Mobile Menu */}
           {mobileMenuOpen && (
             <div className="md:hidden pt-4 pb-2 animate-fade-in">
               <div className="relative">
@@ -81,6 +127,43 @@ export default function Navbar() {
                 <MapPin className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium">123 Main St</span>
               </Button>
+              {user ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    className="gap-2 w-full justify-start"
+                    onClick={() => { navigate("/orders"); setMobileMenuOpen(false); }}
+                  >
+                    <Package className="w-4 h-4" />
+                    My Orders
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="gap-2 w-full justify-start"
+                    onClick={() => { navigate("/favorites"); setMobileMenuOpen(false); }}
+                  >
+                    <Heart className="w-4 h-4" />
+                    Favorites
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="gap-2 w-full justify-start text-destructive"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="ghost"
+                  className="gap-2 w-full justify-start"
+                  onClick={() => { navigate("/auth"); setMobileMenuOpen(false); }}
+                >
+                  <User className="w-4 h-4" />
+                  Sign In
+                </Button>
+              )}
             </div>
           )}
         </div>

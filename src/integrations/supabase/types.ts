@@ -14,7 +14,153 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      addresses: {
+        Row: {
+          apartment: string | null
+          city: string
+          created_at: string
+          id: string
+          is_default: boolean | null
+          label: string
+          state: string
+          street_address: string
+          user_id: string
+          zip_code: string
+        }
+        Insert: {
+          apartment?: string | null
+          city: string
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          label?: string
+          state: string
+          street_address: string
+          user_id: string
+          zip_code: string
+        }
+        Update: {
+          apartment?: string | null
+          city?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          label?: string
+          state?: string
+          street_address?: string
+          user_id?: string
+          zip_code?: string
+        }
+        Relationships: []
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          restaurant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          restaurant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          restaurant_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          created_at: string
+          delivery_address: Json
+          delivery_fee: number
+          driver_location: Json | null
+          driver_name: string | null
+          estimated_delivery: string | null
+          id: string
+          items: Json
+          payment_method: string
+          restaurant_id: string
+          restaurant_name: string
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_address: Json
+          delivery_fee?: number
+          driver_location?: Json | null
+          driver_name?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          items: Json
+          payment_method?: string
+          restaurant_id: string
+          restaurant_name: string
+          status?: string
+          subtotal: number
+          total: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivery_address?: Json
+          delivery_fee?: number
+          driver_location?: Json | null
+          driver_name?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          items?: Json
+          payment_method?: string
+          restaurant_id?: string
+          restaurant_name?: string
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
