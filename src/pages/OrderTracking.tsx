@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { DeliveredDialog } from "@/components/DeliveredDialog";
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -37,6 +38,7 @@ interface DeliveryAddress {
 
 interface Order {
   id: string;
+  restaurant_id: string;
   restaurant_name: string;
   status: string;
   items: OrderItem[];
@@ -47,6 +49,7 @@ interface Order {
   driver_name: string | null;
   estimated_delivery: string | null;
   created_at: string;
+  payment_method: string;
 }
 
 const statusSteps = [
@@ -63,6 +66,8 @@ export default function OrderTracking() {
   const { user, loading: authLoading } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDeliveredDialog, setShowDeliveredDialog] = useState(false);
+  const hasShownDeliveredDialog = useRef(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -74,6 +79,14 @@ export default function OrderTracking() {
       subscribeToOrder();
     }
   }, [user, authLoading, id]);
+
+  // Watch for delivered status
+  useEffect(() => {
+    if (order?.status === "delivered" && !hasShownDeliveredDialog.current) {
+      hasShownDeliveredDialog.current = true;
+      setShowDeliveredDialog(true);
+    }
+  }, [order?.status]);
 
   const fetchOrder = async () => {
     const { data, error } = await supabase
@@ -93,7 +106,7 @@ export default function OrderTracking() {
       delivery_address: data.delivery_address as unknown as DeliveryAddress
     };
 
-    setOrder(orderData);
+    setOrder(orderData as Order);
     setLoading(false);
 
     // Simulate order progress for demo
@@ -151,12 +164,6 @@ export default function OrderTracking() {
     return statusSteps.findIndex((step) => step.key === order?.status);
   };
 
-  const formatTime = (dateString: string | null) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  };
-
   const getEstimatedTime = () => {
     if (!order?.estimated_delivery) return "Calculating...";
     const eta = new Date(order.estimated_delivery);
@@ -190,6 +197,17 @@ export default function OrderTracking() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Delivered Dialog */}
+      <DeliveredDialog
+        open={showDeliveredDialog}
+        onOpenChange={setShowDeliveredDialog}
+        paymentMethod={order.payment_method}
+        total={order.total}
+        orderId={order.id}
+        restaurantId={order.restaurant_id}
+        restaurantName={order.restaurant_name}
+      />
+
       {/* Header */}
       <header className="sticky top-0 z-50 glass border-b">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
@@ -284,8 +302,11 @@ export default function OrderTracking() {
                 <p className="font-semibold">{order.driver_name}</p>
                 <p className="text-sm text-muted-foreground">Your delivery partner</p>
               </div>
-              <Button size="icon" variant="outline">
-                <Phone className="w-4 h-4" />
+              <Button size="sm" variant="outline" className="gap-2" asChild>
+                <a href="tel:+919876543210">
+                  <Phone className="w-4 h-4" />
+                  +91 98765 43210
+                </a>
               </Button>
             </CardContent>
           </Card>
@@ -303,7 +324,7 @@ export default function OrderTracking() {
                   {deliveryAddress.apartment && `, ${deliveryAddress.apartment}`}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {deliveryAddress.city}, {deliveryAddress.state} {deliveryAddress.zip_code}
+                  {deliveryAddress.city}, {deliveryAddress.state} - {deliveryAddress.zip_code}
                 </p>
               </div>
             </div>
@@ -320,7 +341,7 @@ export default function OrderTracking() {
                   <span>
                     {item.quantity}x {item.name}
                   </span>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
+                  <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -330,15 +351,15 @@ export default function OrderTracking() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>${order.subtotal.toFixed(2)}</span>
+                <span>₹{order.subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery Fee</span>
-                <span>${order.delivery_fee.toFixed(2)}</span>
+                <span>₹{order.delivery_fee.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-semibold text-base pt-2">
                 <span>Total</span>
-                <span className="text-primary">${order.total.toFixed(2)}</span>
+                <span className="text-primary">₹{order.total.toFixed(2)}</span>
               </div>
             </div>
           </CardContent>

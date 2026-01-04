@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { PromoCodeInput } from "@/components/PromoCodeInput";
 import { toast } from "sonner";
 import { ArrowLeft, MapPin, CreditCard, Wallet, Plus, Check } from "lucide-react";
 
@@ -23,6 +24,14 @@ interface Address {
   is_default: boolean;
 }
 
+interface PromoCode {
+  id: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  min_order_amount: number;
+}
+
 export default function Checkout() {
   const { user, loading: authLoading } = useAuth();
   const { items, total, clearCart } = useCart();
@@ -34,6 +43,10 @@ export default function Checkout() {
   const [isLoading, setIsLoading] = useState(false);
   const [showNewAddress, setShowNewAddress] = useState(false);
   
+  // Promo code state
+  const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  
   const [newAddress, setNewAddress] = useState({
     label: "Home",
     street_address: "",
@@ -43,8 +56,8 @@ export default function Checkout() {
     zip_code: ""
   });
 
-  const deliveryFee = 2.99;
-  const grandTotal = total + deliveryFee;
+  const deliveryFee = 49;
+  const grandTotal = total - discountAmount + deliveryFee;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -106,6 +119,16 @@ export default function Checkout() {
     toast.success("Address added!");
   };
 
+  const handleApplyPromo = (promo: PromoCode, discount: number) => {
+    setAppliedPromo(promo);
+    setDiscountAmount(discount);
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setDiscountAmount(0);
+  };
+
   const handlePlaceOrder = async () => {
     if (!selectedAddress && !showNewAddress) {
       toast.error("Please select a delivery address");
@@ -161,7 +184,9 @@ export default function Checkout() {
         delivery_address: JSON.parse(JSON.stringify(deliveryAddress)),
         payment_method: paymentMethod,
         estimated_delivery: estimatedDelivery.toISOString(),
-        driver_name: "John D."
+        driver_name: "Rajesh K.",
+        promo_code: appliedPromo?.code || null,
+        discount_amount: discountAmount
       })
       .select()
       .single();
@@ -234,7 +259,7 @@ export default function Checkout() {
                             {address.apartment && `, ${address.apartment}`}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {address.city}, {address.state} {address.zip_code}
+                            {address.city}, {address.state} - {address.zip_code}
                           </p>
                         </div>
                       </div>
@@ -259,15 +284,15 @@ export default function Checkout() {
                       <Input
                         value={newAddress.street_address}
                         onChange={(e) => setNewAddress({ ...newAddress, street_address: e.target.value })}
-                        placeholder="123 Main Street"
+                        placeholder="123, MG Road"
                       />
                     </div>
                     <div>
-                      <Label>Apartment, Suite, etc.</Label>
+                      <Label>Apartment, Floor, etc.</Label>
                       <Input
                         value={newAddress.apartment}
                         onChange={(e) => setNewAddress({ ...newAddress, apartment: e.target.value })}
-                        placeholder="Apt 4B"
+                        placeholder="Flat 4B, 2nd Floor"
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-4">
@@ -276,7 +301,7 @@ export default function Checkout() {
                         <Input
                           value={newAddress.city}
                           onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                          placeholder="New York"
+                          placeholder="Mumbai"
                         />
                       </div>
                       <div>
@@ -284,15 +309,15 @@ export default function Checkout() {
                         <Input
                           value={newAddress.state}
                           onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
-                          placeholder="NY"
+                          placeholder="Maharashtra"
                         />
                       </div>
                       <div>
-                        <Label>ZIP *</Label>
+                        <Label>PIN Code *</Label>
                         <Input
                           value={newAddress.zip_code}
                           onChange={(e) => setNewAddress({ ...newAddress, zip_code: e.target.value })}
-                          placeholder="10001"
+                          placeholder="400001"
                         />
                       </div>
                     </div>
@@ -377,20 +402,36 @@ export default function Checkout() {
                     <span>
                       {item.quantity}x {item.menuItem.name}
                     </span>
-                    <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                    <span>₹{(item.menuItem.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
+
+                <Separator />
+
+                {/* Promo Code */}
+                <PromoCodeInput
+                  subtotal={total}
+                  appliedPromo={appliedPromo}
+                  onApply={handleApplyPromo}
+                  onRemove={handleRemovePromo}
+                />
 
                 <Separator />
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>₹{total.toFixed(2)}</span>
                   </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Discount</span>
+                      <span>-₹{discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Delivery Fee</span>
-                    <span>${deliveryFee.toFixed(2)}</span>
+                    <span>₹{deliveryFee.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -398,7 +439,7 @@ export default function Checkout() {
 
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Total</span>
-                  <span className="text-primary">${grandTotal.toFixed(2)}</span>
+                  <span className="text-primary">₹{grandTotal.toFixed(2)}</span>
                 </div>
 
                 <Button
@@ -407,7 +448,7 @@ export default function Checkout() {
                   onClick={handlePlaceOrder}
                   disabled={isLoading || (!selectedAddress && !showNewAddress)}
                 >
-                  {isLoading ? "Placing Order..." : `Place Order · $${grandTotal.toFixed(2)}`}
+                  {isLoading ? "Placing Order..." : `Place Order · ₹${grandTotal.toFixed(2)}`}
                 </Button>
               </CardContent>
             </Card>
