@@ -79,12 +79,14 @@ export type Database = {
           created_at: string
           delivery_address: Json
           delivery_fee: number
+          discount_amount: number | null
           driver_location: Json | null
           driver_name: string | null
           estimated_delivery: string | null
           id: string
           items: Json
           payment_method: string
+          promo_code: string | null
           restaurant_id: string
           restaurant_name: string
           status: string
@@ -97,12 +99,14 @@ export type Database = {
           created_at?: string
           delivery_address: Json
           delivery_fee?: number
+          discount_amount?: number | null
           driver_location?: Json | null
           driver_name?: string | null
           estimated_delivery?: string | null
           id?: string
           items: Json
           payment_method?: string
+          promo_code?: string | null
           restaurant_id: string
           restaurant_name: string
           status?: string
@@ -115,12 +119,14 @@ export type Database = {
           created_at?: string
           delivery_address?: Json
           delivery_fee?: number
+          discount_amount?: number | null
           driver_location?: Json | null
           driver_name?: string | null
           estimated_delivery?: string | null
           id?: string
           items?: Json
           payment_method?: string
+          promo_code?: string | null
           restaurant_id?: string
           restaurant_name?: string
           status?: string
@@ -160,6 +166,83 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      promo_codes: {
+        Row: {
+          code: string
+          created_at: string
+          current_uses: number | null
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          min_order_amount: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          current_uses?: number | null
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          min_order_amount?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          current_uses?: number | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          min_order_amount?: number | null
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string
+          rating: number
+          restaurant_id: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          rating: number
+          restaurant_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          rating?: number
+          restaurant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

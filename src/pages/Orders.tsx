@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Package, ChevronRight } from "lucide-react";
+import { ReviewDialog } from "@/components/ReviewDialog";
+import { ArrowLeft, Package, ChevronRight, Star } from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -17,11 +18,13 @@ interface OrderItem {
 
 interface Order {
   id: string;
+  restaurant_id: string;
   restaurant_name: string;
   status: string;
   items: OrderItem[];
   total: number;
   created_at: string;
+  hasReview?: boolean;
 }
 
 const statusColors: Record<string, string> = {
@@ -39,6 +42,7 @@ export default function Orders() {
   const { user, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reviewOrder, setReviewOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -51,30 +55,47 @@ export default function Orders() {
   }, [user, authLoading]);
 
   const fetchOrders = async () => {
-    const { data, error } = await supabase
+    const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!error && data) {
-      const ordersData = data.map(order => ({
-        ...order,
-        items: order.items as unknown as OrderItem[]
-      }));
-      setOrders(ordersData);
+    if (ordersError || !ordersData) {
+      setLoading(false);
+      return;
     }
+
+    // Fetch reviews to check which orders have been reviewed
+    const { data: reviewsData } = await supabase
+      .from("reviews")
+      .select("order_id");
+
+    const reviewedOrderIds = new Set(reviewsData?.map(r => r.order_id) || []);
+
+    const processedOrders = ordersData.map(order => ({
+      ...order,
+      items: order.items as unknown as OrderItem[],
+      hasReview: reviewedOrderIds.has(order.id)
+    }));
+
+    setOrders(processedOrders);
     setLoading(false);
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString("en-IN", {
       month: "short",
       day: "numeric",
       year: "numeric",
       hour: "numeric",
       minute: "2-digit",
     });
+  };
+
+  const handleReviewClick = (e: React.MouseEvent, order: Order) => {
+    e.stopPropagation();
+    setReviewOrder(order);
   };
 
   if (loading || authLoading) {
@@ -87,6 +108,18 @@ export default function Orders() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Review Dialog */}
+      {reviewOrder && (
+        <ReviewDialog
+          open={!!reviewOrder}
+          onOpenChange={(open) => !open && setReviewOrder(null)}
+          orderId={reviewOrder.id}
+          restaurantId={reviewOrder.restaurant_id}
+          restaurantName={reviewOrder.restaurant_name}
+          onReviewSubmitted={fetchOrders}
+        />
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-50 glass border-b">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
@@ -156,11 +189,30 @@ export default function Orders() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-primary">
-                        ${order.total.toFixed(2)}
+                        ₹{order.total.toFixed(2)}
                       </span>
                       <ChevronRight className="w-5 h-5 text-muted-foreground" />
                     </div>
                   </div>
+
+                  {/* Rate Order Button for delivered orders */}
+                  {order.status === "delivered" && !order.hasReview && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 w-full gap-2"
+                      onClick={(e) => handleReviewClick(e, order)}
+                    >
+                      <Star className="w-4 h-4" />
+                      Rate Your Order
+                    </Button>
+                  )}
+                  {order.hasReview && (
+                    <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <span>You reviewed this order</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
